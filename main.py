@@ -14,8 +14,7 @@ def get_last_block() -> int:
 
 
 __API_KEY = open('./api.key', 'r').readline()
-# __FROM_BLOCK = 3914495  # CryptoPunks creation block
-__FROM_BLOCK = 13423636
+__FROM_BLOCK = 3914495  # CryptoPunks creation block
 __TO_BLOCK = get_last_block()
 
 
@@ -40,7 +39,7 @@ def get_data():
         to = int(response['result']
                  [-1]['blockNumber'], 16)
         if (response['status'] == '1'):
-            with open("./data/" + str(start) + "_" + str(to) + ".json", 'w') as writer:
+            with open("./logs_data/" + str(start) + "_" + str(to) + ".json", 'w') as writer:
                 print('Writing data from block ' +
                       str(start) + " to block " + str(to))
                 json.dump(response['result'], writer, indent=4)
@@ -87,7 +86,7 @@ def refine_data():
     # Merge all files in a single csv
     downloaded_files = os.listdir('./data')
     for file in downloaded_files:
-        with open('./data/' + file, 'r') as reader:
+        with open('./logs_data/' + file, 'r') as reader:
             document = json.load(reader)
             for event in document:
                 parsed_event = parse_event(event)
@@ -96,5 +95,5 @@ def refine_data():
 
 
 if __name__ == "__main__":
-    get_data()
-    refine_data()
+    #get_data()
+    #refine_data()

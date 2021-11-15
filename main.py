@@ -1,7 +1,9 @@
+from numpy import mod
 import requests
 import json
 import time
 import os
+import pandas as pd
 
 
 def get_last_block() -> int:
@@ -69,7 +71,7 @@ def parse_event(event: dict) -> str:
             event['topics'][1] + ',' + event['data'] + '\n'
     # PunkBought(uint indexed punkIndex, uint value, address indexed fromAddress, address indexed toAddress);
     elif event_type == '0x58e5d5a525e3b40bc15abaa38b5882678db1ee68befd2f60bafe3a7fd06db9e3':
-        event['topics'][0] = "Punk Bought"
+        event['topics'][0] = "PunkBought"
         event['topics'][1] = str(int(event['topics'][1], 16))
         event = event['timeStamp'] + ","+event['topics'][0] + "," + event['topics'][2] + \
             "," + event['topics'][3] + "," + event['topics'][1] + '\n'
@@ -85,7 +87,7 @@ def parse_event(event: dict) -> str:
     return event
 
 
-def filter_data():
+def parse_and_filter_data():
     # Merge all files in a single csv
     downloaded_files = os.listdir('./logs_data')
     events = []
@@ -101,6 +103,16 @@ def filter_data():
         writer.writelines(events)
 
 
+def rm_duplicates():
+    dataset = pd.read_csv("./logs_data/logs.csv")
+    print("Before duplicate cleaning:", dataset.shape[0], dataset.shape[1])
+    dataset.drop_duplicates(inplace=True)
+    print("After duplicate cleaning:", dataset.shape[0], dataset.shape[1])
+    dataset.sort_values(by=['timestamp'], inplace=True)
+    dataset.to_csv("./logs_data/logs.csv", index=False, mode='w')
+
+
 if __name__ == "__main__":
     # get_data()
-    filter_data()
+    # parse_and_filter_data()
+    rm_duplicates()

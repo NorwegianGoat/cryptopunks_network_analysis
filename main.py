@@ -112,7 +112,12 @@ def rm_duplicates():
     dataset.to_csv("./logs_data/logs.csv", index=False, mode='w')
 
 
+def data_enrichment():
+    dataset = pd.read_csv("./logs_data/logs.csv")
+
+
 if __name__ == "__main__":
     # get_data()
     # parse_and_filter_data()
-    rm_duplicates()
+    # rm_duplicates()
+    data_enrichment()

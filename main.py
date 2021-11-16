@@ -1,11 +1,10 @@
-from numpy import mod
-from pandas.core.algorithms import mode
-from pandas.core.frame import DataFrame
 import requests
 import json
 import time
 import os
 import pandas as pd
+import networkx as nx
+import scipy
 
 
 def get_last_block() -> int:
@@ -68,6 +67,7 @@ def parse_event(event: dict) -> str:
     # Assign(address indexed to, uint256 punkIndex);
     if event_type == '0x8a0e37b73a0d9c82e205d4d1a3ff3d0b57ce5f4d7bccf6bac03336dc101cb7ba':
         event['topics'][0] = "Assign"
+        event['topics'][1] = "0x"+event['topics'][1][26:]
         event['data'] = str(int(event['data'], 16))
         event = event['timeStamp'] + ',' + event['topics'][0] + ',' + __NULL_ADDRESS + ',' + \
             event['topics'][1] + ',' + event['data'] + '\n'
@@ -75,11 +75,15 @@ def parse_event(event: dict) -> str:
     elif event_type == '0x58e5d5a525e3b40bc15abaa38b5882678db1ee68befd2f60bafe3a7fd06db9e3':
         event['topics'][0] = "PunkBought"
         event['topics'][1] = str(int(event['topics'][1], 16))
+        event['topics'][2] = "0x"+event['topics'][2][26:]
+        event['topics'][3] = "0x"+event['topics'][2][26:]
         event = event['timeStamp'] + ","+event['topics'][0] + "," + event['topics'][2] + \
             "," + event['topics'][3] + "," + event['topics'][1] + '\n'
     # PunkTransfer(address indexed from, address indexed to, uint256 punkIndex);
     elif event_type == '0x05af636b70da6819000c49f85b21fa82081c632069bb626f30932034099107d8':
         event['topics'][0] = "PunkTransfer"
+        event['topics'][1] = "0x"+event['topics'][1][26:]
+        event['topics'][2] = "0x"+event['topics'][1][26:]
         event['data'] = str(int(event['data'], 16))
         event = event['timeStamp'] + ","+event['topics'][0] + "," + event['topics'][1] + \
             "," + event['topics'][2] + "," + event['data'] + '\n'
@@ -121,8 +125,6 @@ def data_enrichment():
                  for file in punk_data_files]
     punk_data = pd.concat(punk_data)
     punk_data.sort_values(by=["id"], inplace=True)
-    print(punk_data.iloc[:, 0:2].rename(
-        columns={"id": "punk_id", "type": "punk_type"}))
     logs_data = logs_data.merge(punk_data.iloc[:, 0:2].rename(
         columns={"id": "punk_id", "type": "punk_type"}), on="punk_id")
     punk_data.rename(columns={"type": "punk_type"}, inplace=True)
@@ -133,12 +135,20 @@ def data_split():
     logs_data = pd.read_csv("./out/logs.csv")
     logs_data.loc[logs_data["punk_type"] == "Human"].to_csv(
         "./out/human_exchanges.csv", index=False)
-    ape_exchanges = logs_data.loc[logs_data["punk_type"] == "Ape"].to_csv(
+    logs_data.loc[logs_data["punk_type"] == "Ape"].to_csv(
         "./out/ape_exchanges.csv", index=False)
-    zombie_exchanges = logs_data.loc[logs_data["punk_type"] == "Zombie"].to_csv(
+    logs_data.loc[logs_data["punk_type"] == "Zombie"].to_csv(
         "./out/zombie_exchanges.csv", index=False)
-    alien_exchanges = logs_data.loc[logs_data["punk_type"] == "Alien"].to_csv(
+    logs_data.loc[logs_data["punk_type"] == "Alien"].to_csv(
         "./out/alien_exchanges.csv", index=False)
+
+
+def edge_list_to_adjacency():
+    graph = nx.from_pandas_edgelist(
+        pd.read_csv("./out/alien_exchanges.csv"), edge_attr=True)
+    adjacency = nx.to_pandas_adjacency(graph)
+    with open("./out/sparse.txt", "w") as file:
+        file.write(adjacency.to_string())
 
 
 if __name__ == "__main__":
@@ -147,4 +157,5 @@ if __name__ == "__main__":
     # rm_duplicates()
     # data_enrichment()
     # data_split()
+    edge_list_to_adjacency()
     pass

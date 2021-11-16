@@ -93,7 +93,7 @@ def parse_and_filter_data():
     # Merge all files in a single csv
     downloaded_files = os.listdir('./logs_data')
     events = ["timestamp,event_type,source,target,punk_id\n"]
-    with open('./logs_data/logs.csv', 'w') as writer:
+    with open('./out/logs.csv', 'w') as writer:
         for file in downloaded_files:
             with open('./logs_data/' + file, 'r') as reader:
                 document = json.load(reader)
@@ -105,25 +105,40 @@ def parse_and_filter_data():
 
 
 def rm_duplicates():
-    dataset = pd.read_csv("./logs_data/logs.csv")
+    dataset = pd.read_csv("./out/logs.csv")
     print("Before duplicate cleaning:", dataset.shape[0], dataset.shape[1])
     dataset.drop_duplicates(inplace=True)
     print("After duplicate cleaning:", dataset.shape[0], dataset.shape[1])
     dataset.sort_values(by=['timestamp'], inplace=True)
-    dataset.to_csv("./logs_data/logs.csv", index=False, mode='w')
+    dataset.to_csv("./out/logs.csv", index=False, mode='w')
 
 
 def data_enrichment():
-    logs_data = pd.read_csv("./logs_data/logs.csv")
+    logs_data = pd.read_csv("./out/logs.csv")
     punk_data_files = os.listdir("./punks_data")
     punk_data_files.remove('README.md')
-    punk_data = [pd.read_csv('./punks_data/' + file)
+    punk_data = [pd.read_csv('./punks_data/' + file, skipinitialspace=True)
                  for file in punk_data_files]
     punk_data = pd.concat(punk_data)
     punk_data.sort_values(by=["id"], inplace=True)
+    print(punk_data.iloc[:, 0:2].rename(
+        columns={"id": "punk_id", "type": "punk_type"}))
     logs_data = logs_data.merge(punk_data.iloc[:, 0:2].rename(
-        columns={"id": "punk_id"}), on="punk_id")
-    logs_data.to_csv("./logs_data/logs.csv", index=False, mode='w')
+        columns={"id": "punk_id", "type": "punk_type"}), on="punk_id")
+    punk_data.rename(columns={"type": "punk_type"}, inplace=True)
+    logs_data.to_csv("./out/logs.csv", index=False, mode='w')
+
+
+def data_split():
+    logs_data = pd.read_csv("./out/logs.csv")
+    logs_data.loc[logs_data["punk_type"] == "Human"].to_csv(
+        "./out/human_exchanges.csv", index=False)
+    ape_exchanges = logs_data.loc[logs_data["punk_type"] == "Ape"].to_csv(
+        "./out/ape_exchanges.csv", index=False)
+    zombie_exchanges = logs_data.loc[logs_data["punk_type"] == "Zombie"].to_csv(
+        "./out/zombie_exchanges.csv", index=False)
+    alien_exchanges = logs_data.loc[logs_data["punk_type"] == "Alien"].to_csv(
+        "./out/alien_exchanges.csv", index=False)
 
 
 if __name__ == "__main__":
@@ -131,4 +146,5 @@ if __name__ == "__main__":
     # parse_and_filter_data()
     # rm_duplicates()
     # data_enrichment()
+    # data_split()
     pass

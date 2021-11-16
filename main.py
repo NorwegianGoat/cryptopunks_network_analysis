@@ -94,10 +94,10 @@ def parse_event(event: dict) -> str:
 
 
 def parse_and_filter_data():
-    # Merge all files in a single csv
+    # Merge all files in a single csv containing only some specific events
     downloaded_files = os.listdir('./logs_data')
     events = ["timestamp,event_type,source,target,punk_id\n"]
-    with open('./out/logs.csv', 'w') as writer:
+    with open('./out/all_exchanges.csv', 'w') as writer:
         for file in downloaded_files:
             with open('./logs_data/' + file, 'r') as reader:
                 document = json.load(reader)
@@ -109,16 +109,20 @@ def parse_and_filter_data():
 
 
 def rm_duplicates():
-    dataset = pd.read_csv("./out/logs.csv")
+    # Removes duplicated lines and sorts the exchanges by timestamp
+    dataset = pd.read_csv("./out/all_exchanges.csv")
     print("Before duplicate cleaning:", dataset.shape[0], dataset.shape[1])
     dataset.drop_duplicates(inplace=True)
     print("After duplicate cleaning:", dataset.shape[0], dataset.shape[1])
     dataset.sort_values(by=['timestamp'], inplace=True)
-    dataset.to_csv("./out/logs.csv", index=False, mode='w')
+    dataset.to_csv("./out/all_exchanges.csv", index=False, mode='w')
 
 
 def data_enrichment():
-    logs_data = pd.read_csv("./out/logs.csv")
+    # Reads the log csv and adds punk_type to the edge list.
+    # Punk data is read from data taken from
+    # https://github.com/cryptopunksnotdead/punks.attributes/tree/master/original
+    logs_data = pd.read_csv("./out/all_exchanges.csv")
     punk_data_files = os.listdir("./punks_data")
     punk_data_files.remove('README.md')
     punk_data = [pd.read_csv('./punks_data/' + file, skipinitialspace=True)
@@ -128,11 +132,12 @@ def data_enrichment():
     logs_data = logs_data.merge(punk_data.iloc[:, 0:2].rename(
         columns={"id": "punk_id", "type": "punk_type"}), on="punk_id")
     punk_data.rename(columns={"type": "punk_type"}, inplace=True)
-    logs_data.to_csv("./out/logs.csv", index=False, mode='w')
+    logs_data.to_csv("./out/all_exchanges.csv", index=False, mode='w')
 
 
 def data_split():
-    logs_data = pd.read_csv("./out/logs.csv")
+    # Exchanges split by type
+    logs_data = pd.read_csv("./out/all_exchanges.csv")
     logs_data.loc[logs_data["punk_type"] == "Human"].to_csv(
         "./out/human_exchanges.csv", index=False)
     logs_data.loc[logs_data["punk_type"] == "Ape"].to_csv(
@@ -145,7 +150,7 @@ def data_split():
 
 def edge_list_to_adjacency():
     graph = nx.from_pandas_edgelist(
-        pd.read_csv("./out/alien_exchanges.csv"), edge_attr=True)
+        pd.read_csv("./out/all_exchanges.csv"), edge_attr=True)
     adjacency = nx.to_pandas_adjacency(graph)
     with open("./out/sparse.txt", "w") as file:
         file.write(adjacency.to_string())

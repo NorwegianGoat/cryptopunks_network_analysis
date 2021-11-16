@@ -1,4 +1,5 @@
 from numpy import mod
+from pandas.core.algorithms import mode
 from pandas.core.frame import DataFrame
 import requests
 import json
@@ -91,9 +92,8 @@ def parse_event(event: dict) -> str:
 def parse_and_filter_data():
     # Merge all files in a single csv
     downloaded_files = os.listdir('./logs_data')
-    events = []
+    events = ["timestamp,event_type,source,target,punk_id\n"]
     with open('./logs_data/logs.csv', 'w') as writer:
-        writer.write('timestamp, event_type, source, target, punk_id \n')
         for file in downloaded_files:
             with open('./logs_data/' + file, 'r') as reader:
                 document = json.load(reader)
@@ -114,20 +114,21 @@ def rm_duplicates():
 
 
 def data_enrichment():
-    logs_dataset = pd.read_csv("./logs_data/logs.csv")
+    logs_data = pd.read_csv("./logs_data/logs.csv")
     punk_data_files = os.listdir("./punks_data")
     punk_data_files.remove('README.md')
     punk_data = [pd.read_csv('./punks_data/' + file)
                  for file in punk_data_files]
     punk_data = pd.concat(punk_data)
     punk_data.sort_values(by=["id"], inplace=True)
-    punk_data.rename(columns={"id": "punk_id"}, inplace=True)
-    logs_dataset.merge(punk_data.iloc[:, 0:2], on=["punk_id"])
-    print(logs_dataset)
+    logs_data = logs_data.merge(punk_data.iloc[:, 0:2].rename(
+        columns={"id": "punk_id"}), on="punk_id")
+    logs_data.to_csv("./logs_data/logs.csv", index=False, mode='w')
 
 
 if __name__ == "__main__":
     # get_data()
     # parse_and_filter_data()
     # rm_duplicates()
-    data_enrichment()
+    # data_enrichment()
+    pass

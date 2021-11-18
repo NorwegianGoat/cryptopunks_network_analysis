@@ -61,14 +61,7 @@ def get_data():
             start = to
 
 
-def to_address_fix(tx_hash: str) -> str:
-    # If a punk is sold by accepting an offer the destination is the null address.
-    # This method fixes it.
-    print(__document[tx_hash])
-    return ""
-
-
-def parse_event(event: dict) -> str:
+def parse_event(event: dict, i: int) -> str:
     # Event is returned in form of timestamp, event type, from, to, punkId
     event_type = event['topics'][0]
     event['timeStamp'] = str(int(event['timeStamp'], 16))
@@ -85,10 +78,13 @@ def parse_event(event: dict) -> str:
         event['topics'][1] = str(int(event['topics'][1], 16))
         event['topics'][2] = "0x"+event['topics'][2][26:]
         event['topics'][3] = "0x"+event['topics'][3][26:]
+        # If a punk is sold by accepting an offer the destination in the logs is the null address.
+        # This if fixes it
         if (event['topics'][3] == __NULL_ADDRESS):
-            event['topics'][3] = to_address_fix(event['transactionHash'])
-        event = event['timeStamp'] + ","+event['topics'][0] + "," + event['topics'][2] + \
-            "," + event['topics'][3] + "," + event['topics'][1] + '\n'
+            event['topics'][3] = "0x"+__document[i-1]["topics"][2][26:]
+        event = event['timeStamp'] + ","+event['topics'][0] + "," + \
+            event['topics'][2] + "," + event['topics'][3] + \
+            "," + event['topics'][1] + '\n'
     # PunkTransfer(address indexed from, address indexed to, uint256 punkIndex);
     elif event_type == '0x05af636b70da6819000c49f85b21fa82081c632069bb626f30932034099107d8':
         event['topics'][0] = "PunkTransfer"
@@ -112,8 +108,8 @@ def parse_and_filter_data():
             with open('./logs_data/' + file, 'r') as reader:
                 global __document
                 __document = json.load(reader)
-            for event in __document:
-                parsed_event = parse_event(event)
+            for i, event in enumerate(__document):
+                parsed_event = parse_event(event, i)
                 if(parsed_event):
                     events.append(parsed_event)
         writer.writelines(events)
@@ -140,7 +136,7 @@ def data_enrichment():
                  for file in punk_data_files]
     punk_data = pd.concat(punk_data)
     punk_data.sort_values(by=["id"], inplace=True)
-    logs_data = logs_data.merge(punk_data.iloc[:, 0:2].rename(
+    logs_data = logs_data.merge(punk_data.iloc[:, 0: 2].rename(
         columns={"id": "punk_id", "type": "punk_type"}), on="punk_id")
     punk_data.rename(columns={"type": "punk_type"}, inplace=True)
     logs_data.to_csv("./out/all_exchanges.csv", index=False, mode='w')

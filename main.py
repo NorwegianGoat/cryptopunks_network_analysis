@@ -59,9 +59,11 @@ def get_data():
         else:
             start = to
 
+# TODO: fix to bug
 
-# Event is returned in form of timestamp, event type, from, to, punkId
+
 def parse_event(event: dict) -> str:
+    # Event is returned in form of timestamp, event type, from, to, punkId
     event_type = event['topics'][0]
     event['timeStamp'] = str(int(event['timeStamp'], 16))
     # Assign(address indexed to, uint256 punkIndex);
@@ -76,14 +78,14 @@ def parse_event(event: dict) -> str:
         event['topics'][0] = "PunkBought"
         event['topics'][1] = str(int(event['topics'][1], 16))
         event['topics'][2] = "0x"+event['topics'][2][26:]
-        event['topics'][3] = "0x"+event['topics'][2][26:]
+        event['topics'][3] = "0x"+event['topics'][3][26:]
         event = event['timeStamp'] + ","+event['topics'][0] + "," + event['topics'][2] + \
             "," + event['topics'][3] + "," + event['topics'][1] + '\n'
     # PunkTransfer(address indexed from, address indexed to, uint256 punkIndex);
     elif event_type == '0x05af636b70da6819000c49f85b21fa82081c632069bb626f30932034099107d8':
         event['topics'][0] = "PunkTransfer"
         event['topics'][1] = "0x"+event['topics'][1][26:]
-        event['topics'][2] = "0x"+event['topics'][1][26:]
+        event['topics'][2] = "0x"+event['topics'][2][26:]
         event['data'] = str(int(event['data'], 16))
         event = event['timeStamp'] + ","+event['topics'][0] + "," + event['topics'][1] + \
             "," + event['topics'][2] + "," + event['data'] + '\n'
@@ -150,7 +152,7 @@ def data_split():
 
 def edge_list_to_adjacency():
     graph = nx.from_pandas_edgelist(
-        pd.read_csv("./out/all_exchanges.csv"), edge_attr=True)
+        pd.read_csv("./out/alien_exchanges.csv"), edge_attr=True)
     adjacency = nx.to_pandas_adjacency(graph)
     with open("./out/sparse.txt", "w") as file:
         file.write(adjacency.to_string())
@@ -158,9 +160,9 @@ def edge_list_to_adjacency():
 
 if __name__ == "__main__":
     # get_data()
-    # parse_and_filter_data()
-    # rm_duplicates()
-    # data_enrichment()
-    # data_split()
+    parse_and_filter_data()
+    rm_duplicates()
+    data_enrichment()
+    data_split()
     edge_list_to_adjacency()
     pass

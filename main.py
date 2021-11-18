@@ -19,6 +19,7 @@ __API_KEY = open('./api.key', 'r').readline()
 __FROM_BLOCK = 3914495  # CryptoPunks creation block
 __TO_BLOCK = get_last_block()
 __NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
+__document = None
 
 
 def get_data():
@@ -59,7 +60,12 @@ def get_data():
         else:
             start = to
 
-# TODO: fix to bug
+
+def to_address_fix(tx_hash: str) -> str:
+    # If a punk is sold by accepting an offer the destination is the null address.
+    # This method fixes it.
+    print(__document[tx_hash])
+    return ""
 
 
 def parse_event(event: dict) -> str:
@@ -79,6 +85,8 @@ def parse_event(event: dict) -> str:
         event['topics'][1] = str(int(event['topics'][1], 16))
         event['topics'][2] = "0x"+event['topics'][2][26:]
         event['topics'][3] = "0x"+event['topics'][3][26:]
+        if (event['topics'][3] == __NULL_ADDRESS):
+            event['topics'][3] = to_address_fix(event['transactionHash'])
         event = event['timeStamp'] + ","+event['topics'][0] + "," + event['topics'][2] + \
             "," + event['topics'][3] + "," + event['topics'][1] + '\n'
     # PunkTransfer(address indexed from, address indexed to, uint256 punkIndex);
@@ -102,8 +110,9 @@ def parse_and_filter_data():
     with open('./out/all_exchanges.csv', 'w') as writer:
         for file in downloaded_files:
             with open('./logs_data/' + file, 'r') as reader:
-                document = json.load(reader)
-            for event in document:
+                global __document
+                __document = json.load(reader)
+            for event in __document:
                 parsed_event = parse_event(event)
                 if(parsed_event):
                     events.append(parsed_event)

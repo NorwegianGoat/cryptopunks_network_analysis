@@ -1,3 +1,4 @@
+from networkx.classes.graph import Graph
 from networkx.classes.multidigraph import MultiDiGraph
 import requests
 import json
@@ -180,7 +181,8 @@ def matrices_creation():
     return fg, cg, rg
 
 
-def graph_analysis(matrix):
+def graph_analysis(matrix: Graph):
+    matrix.remove_node(__NULL_ADDRESS)
     pass
 
 
@@ -195,12 +197,12 @@ if __name__ == "__main__":
     visual inspection with gephi. Conceptually rare_exchanges is the sum of
     ape_exchanges, alien_exchanges and zombie_echanges. 
     common_exchanges is all_exchanges - rare_exchanges'''
-    nx.to_pandas_edgelist(cg).to_csv(
-        "./out/common_exchanges.csv", index=False, mode="w")
-    nx.to_pandas_edgelist(rg).to_csv(
-        "./out/rare_exchanges.csv", index=False, mode="w")
+    # nx.to_pandas_edgelist(cg).to_csv(
+    #    "./out/common_exchanges.csv", index=False, mode="w")
+    # nx.to_pandas_edgelist(rg).to_csv(
+    #    "./out/rare_exchanges.csv", index=False, mode="w")
     t = nx.from_numpy_matrix(numpy.dot(nx.adjacency_matrix(
-        nx.Graph(rg)), nx.adjacency_matrix(nx.Graph(rg))))
+        rg), nx.adjacency_matrix(cg)))
     nx.to_pandas_edgelist(t).to_csv("./tmp/dbg.csv", index=False)
     print(t)
     pass

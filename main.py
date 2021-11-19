@@ -159,14 +159,14 @@ def data_split():
     alien_data.to_csv("./out/alien_exchanges.csv", index=False)
 
 
-def save_matrix(graph):
+def save_matrix(graph, filename):
     # For debug porpuses only
     edgelist = nx.to_pandas_edgelist(graph)
     edgelist.sort_values(by=['timestamp'], inplace=True)
-    edgelist.to_csv("./out/debug.csv", index=False)
+    edgelist.to_csv("./tmp/" + filename, index=False, mode="w")
 
 
-def graph_analysis():
+def matrices_creation():
     # Full matrix
     fg: MultiDiGraph = nx.from_pandas_edgelist(
         pd.read_csv("./out/all_exchanges.csv"), edge_attr=True, create_using=nx.MultiDiGraph)
@@ -187,8 +187,11 @@ def graph_analysis():
     rg: MultiDiGraph = fg.copy()
     rg.remove_edges_from(common_exchanges)
     print("[RARE MATRIX]", rg)
-    save_matrix(rg)
-    save_matrix(cg)
+    return fg, cg, rg
+
+
+def graph_analysis(matrix):
+    pass
 
 
 if __name__ == "__main__":
@@ -197,5 +200,9 @@ if __name__ == "__main__":
     rm_duplicates()
     data_enrichment()
     data_split()
-    graph_analysis()
+    fg, cg, rg = matrices_creation()
+    save_matrix(fg, "fg.csv")
+    graph_analysis(fg)
+    graph_analysis(cg)
+    graph_analysis(rg)
     pass

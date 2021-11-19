@@ -146,16 +146,12 @@ def data_split():
     # Exchanges split by type
     logs_data = pd.read_csv("./out/all_exchanges.csv")
     human_data = logs_data.loc[logs_data["punk_type"] == "Human"]
-    human_data.sort_values(by=['timestamp'], inplace=True)
     human_data.to_csv("./out/human_exchanges.csv", index=False)
     ape_data = logs_data.loc[logs_data["punk_type"] == "Ape"]
-    ape_data.sort_values(by=['timestamp'], inplace=True)
     ape_data.to_csv("./out/ape_exchanges.csv", index=False)
     zombie_data = logs_data.loc[logs_data["punk_type"] == "Zombie"]
-    zombie_data.sort_values(by=['timestamp'], inplace=True)
     zombie_data.to_csv("./out/zombie_exchanges.csv", index=False)
     alien_data = logs_data.loc[logs_data["punk_type"] == "Alien"]
-    alien_data.sort_values(by=['timestamp'], inplace=True)
     alien_data.to_csv("./out/alien_exchanges.csv", index=False)
 
 

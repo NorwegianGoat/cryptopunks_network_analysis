@@ -192,12 +192,11 @@ def graph_analysis(matrix):
 
 if __name__ == "__main__":
     # get_data()
-    parse_and_filter_data()
-    rm_duplicates()
-    data_enrichment()
-    data_split()
+    # parse_and_filter_data()
+    # rm_duplicates()
+    # data_enrichment()
+    # data_split()
     fg, cg, rg = matrices_creation()
-    save_matrix(fg, "fg.csv")
     graph_analysis(fg)
     graph_analysis(cg)
     graph_analysis(rg)

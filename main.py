@@ -5,6 +5,7 @@ import time
 import os
 import pandas as pd
 import networkx as nx
+import numpy
 
 
 def get_last_block() -> int:
@@ -155,13 +156,6 @@ def data_split():
     alien_data.to_csv("./out/alien_exchanges.csv", index=False)
 
 
-def save_matrix(graph, filename):
-    # For debug porpuses only
-    edgelist = nx.to_pandas_edgelist(graph)
-    edgelist.sort_values(by=['timestamp'], inplace=True)
-    edgelist.to_csv("./tmp/" + filename, index=False, mode="w")
-
-
 def matrices_creation():
     # Full matrix
     fg: MultiDiGraph = nx.from_pandas_edgelist(
@@ -170,11 +164,11 @@ def matrices_creation():
     # Removal of human exchanges from ""
     common_exchanges = []
     rare_exchanges = []
-    for edge in fg.edges(data=True):
-        if edge[2]["punk_type"] == "Human":
-            common_exchanges.append(edge[0:2])
+    for edge in fg.edges(data=True, keys=True):
+        if edge[3]["punk_type"] == "Human":
+            common_exchanges.append(edge[0:3])
         else:
-            rare_exchanges.append(edge[0:2])
+            rare_exchanges.append(edge[0:3])
     # Remove rare exchanges from common exchanges matrix
     cg: MultiDiGraph = fg.copy()
     cg.remove_edges_from(rare_exchanges)
@@ -197,7 +191,14 @@ if __name__ == "__main__":
     # data_enrichment()
     # data_split()
     fg, cg, rg = matrices_creation()
-    graph_analysis(fg)
-    graph_analysis(cg)
-    graph_analysis(rg)
+    '''edgelists of common exchanges and rare exchanges. Saved for further
+    visual inspection with gephi. Conceptually rare_exchanges is the sum of
+    ape_exchanges, alien_exchanges and zombie_echanges. 
+    common_exchanges is all_exchanges - rare_exchanges'''
+    nx.to_pandas_edgelist(cg).to_csv(
+        "./out/common_exchanges.csv", index=False, mode="w")
+    nx.to_pandas_edgelist(rg).to_csv(
+        "./out/rare_exchanges.csv", index=False, mode="w")
+    t = nx.from_numpy_matrix(numpy.dot(nx.adjacency_matrix(
+        nx.Graph(rg)), nx.adjacency_matrix(nx.Graph(cg))))
     pass

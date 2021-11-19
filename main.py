@@ -121,7 +121,6 @@ def rm_duplicates():
     print("Before duplicate cleaning:", dataset.shape[0], dataset.shape[1])
     dataset.drop_duplicates(inplace=True)
     print("After duplicate cleaning:", dataset.shape[0], dataset.shape[1])
-    dataset.sort_values(by=['timestamp'], inplace=True)
     dataset.to_csv("./out/all_exchanges.csv", index=False, mode='w')
 
 
@@ -139,6 +138,7 @@ def data_enrichment():
     logs_data = logs_data.merge(punk_data.iloc[:, 0: 2].rename(
         columns={"id": "punk_id", "type": "punk_type"}), on="punk_id")
     punk_data.rename(columns={"type": "punk_type"}, inplace=True)
+    logs_data.sort_values(by=['timestamp'], inplace=True)
     logs_data.to_csv("./out/all_exchanges.csv", index=False, mode='w')
 
 
@@ -163,7 +163,7 @@ def save_matrix(graph):
     # For debug porpuses only
     edgelist = nx.to_pandas_edgelist(graph)
     edgelist.sort_values(by=['timestamp'], inplace=True)
-    edgelist.to_csv("./out/debug.txt", index=False)
+    edgelist.to_csv("./out/debug.csv", index=False)
 
 
 def graph_analysis():
@@ -178,7 +178,6 @@ def graph_analysis():
         if edge[2]["punk_type"] == "Human":
             common_exchanges.append(edge[0:2])
         else:
-            print(edge)
             rare_exchanges.append(edge[0:2])
     # Remove rare exchanges from common exchanges matrix
     cg: MultiDiGraph = fg.copy()
@@ -189,13 +188,14 @@ def graph_analysis():
     rg.remove_edges_from(common_exchanges)
     print("[RARE MATRIX]", rg)
     save_matrix(rg)
+    save_matrix(cg)
 
 
 if __name__ == "__main__":
     # get_data()
-    # parse_and_filter_data()
-    # rm_duplicates()
-    # data_enrichment()
-    # data_split()
+    parse_and_filter_data()
+    rm_duplicates()
+    data_enrichment()
+    data_split()
     graph_analysis()
     pass

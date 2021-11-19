@@ -1,10 +1,10 @@
+from networkx.classes.multidigraph import MultiDiGraph
 import requests
 import json
 import time
 import os
 import pandas as pd
 import networkx as nx
-import scipy
 
 
 def get_last_block() -> int:
@@ -159,12 +159,36 @@ def data_split():
     alien_data.to_csv("./out/alien_exchanges.csv", index=False)
 
 
-def edge_list_to_adjacency():
-    graph = nx.from_pandas_edgelist(
-        pd.read_csv("./out/alien_exchanges.csv"), edge_attr=True)
-    adjacency = nx.to_pandas_adjacency(graph)
-    with open("./out/sparse.txt", "w") as file:
-        file.write(adjacency.to_string())
+def save_matrix(graph):
+    # For debug porpuses only
+    edgelist = nx.to_pandas_edgelist(graph)
+    edgelist.sort_values(by=['timestamp'], inplace=True)
+    edgelist.to_csv("./out/debug.txt", index=False)
+
+
+def graph_analysis():
+    # Full matrix
+    fg: MultiDiGraph = nx.from_pandas_edgelist(
+        pd.read_csv("./out/all_exchanges.csv"), edge_attr=True, create_using=nx.MultiDiGraph)
+    print("[FULL MATTRIX]", fg)
+    # Removal of human exchanges from ""
+    common_exchanges = []
+    rare_exchanges = []
+    for edge in fg.edges(data=True):
+        if edge[2]["punk_type"] == "Human":
+            common_exchanges.append(edge[0:2])
+        else:
+            print(edge)
+            rare_exchanges.append(edge[0:2])
+    # Remove rare exchanges from common exchanges matrix
+    cg: MultiDiGraph = fg.copy()
+    cg.remove_edges_from(rare_exchanges)
+    print("[COMMON MATRIX]", cg)
+    # Remove common exchange from rare matrix
+    rg: MultiDiGraph = fg.copy()
+    rg.remove_edges_from(common_exchanges)
+    print("[RARE MATRIX]", rg)
+    save_matrix(rg)
 
 
 if __name__ == "__main__":
@@ -173,5 +197,5 @@ if __name__ == "__main__":
     # rm_duplicates()
     # data_enrichment()
     # data_split()
-    edge_list_to_adjacency()
+    graph_analysis()
     pass

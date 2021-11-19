@@ -200,5 +200,7 @@ if __name__ == "__main__":
     nx.to_pandas_edgelist(rg).to_csv(
         "./out/rare_exchanges.csv", index=False, mode="w")
     t = nx.from_numpy_matrix(numpy.dot(nx.adjacency_matrix(
-        nx.Graph(rg)), nx.adjacency_matrix(nx.Graph(cg))))
+        nx.Graph(rg)), nx.adjacency_matrix(nx.Graph(rg))))
+    nx.to_pandas_edgelist(t).to_csv("./tmp/dbg.csv", index=False)
+    print(t)
     pass

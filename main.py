@@ -187,6 +187,21 @@ def graph_analysis(matrix: Graph):
     pass
 
 
+def debug():
+    test_r = nx.from_pandas_adjacency(pd.DataFrame(
+        [[0, 1, 0], [0, 0, 1], [0, 0, 0]]), create_using=nx.DiGraph)
+    test_c = nx.from_pandas_adjacency(pd.DataFrame(
+        [[0, 0, 1], [0, 0, 0], [1, 0, 0]]), create_using=nx.DiGraph)
+    test_rc = nx.from_numpy_matrix(numpy.dot(nx.adjacency_matrix(test_r),
+                                             nx.adjacency_matrix(test_c)), create_using=nx.DiGraph)
+    print(test_rc)
+    nx.to_pandas_adjacency(test_r).to_csv(
+        "./tmp/testr.csv", index=False, mode="w")
+    nx.to_pandas_adjacency(test_c).to_csv(
+        "./tmp/testc.csv", index=False, mode="w")
+    nx.to_pandas_adjacency(test_rc).to_csv(
+        "./tmp/testrc.csv", index=False, mode="w")
+        
 if __name__ == "__main__":
     # get_data()
     # parse_and_filter_data()
@@ -205,9 +220,9 @@ if __name__ == "__main__":
     fg.remove_node(__NULL_ADDRESS)
     rg.remove_node(__NULL_ADDRESS)
     cg.remove_node(__NULL_ADDRESS)
-    t = nx.from_numpy_matrix(numpy.dot(nx.adjacency_matrix(rg),
-                                       nx.adjacency_matrix(cg)))
-    print(t)
-    #g =  nx.from_pandas_adjacency(nx.to_pandas_adjacency(rg).dot(nx.to_pandas_adjacency(cg)))
-    # print(nx.is_isomorphic(t,g))
+    # Creates a matrix of common exchanges made by rare nft owners
+    rcg = nx.from_numpy_matrix(numpy.dot(nx.adjacency_matrix(rg),
+                                         nx.adjacency_matrix(cg)), create_using=nx.DiGraph)
+    print(rcg)
+    debug()
     pass

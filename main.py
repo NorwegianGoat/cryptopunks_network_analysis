@@ -7,6 +7,7 @@ import os
 import pandas as pd
 import networkx as nx
 import numpy
+import sqlite3
 
 
 def get_last_block() -> int:
@@ -198,11 +199,15 @@ if __name__ == "__main__":
     ape_exchanges, alien_exchanges and zombie_echanges. 
     common_exchanges is all_exchanges - rare_exchanges'''
     # nx.to_pandas_edgelist(cg).to_csv(
-    #    "./out/common_exchanges.csv", index=False, mode="w")
+    #   "./out/common_exchanges.csv", index=False, mode="w")
     # nx.to_pandas_edgelist(rg).to_csv(
-    #    "./out/rare_exchanges.csv", index=False, mode="w")
-    t = nx.from_numpy_matrix(numpy.dot(nx.adjacency_matrix(
-        rg), nx.adjacency_matrix(cg)))
-    nx.to_pandas_edgelist(t).to_csv("./tmp/dbg.csv", index=False)
+    #   "./out/rare_exchanges.csv", index=False, mode="w")
+    fg.remove_node(__NULL_ADDRESS)
+    rg.remove_node(__NULL_ADDRESS)
+    cg.remove_node(__NULL_ADDRESS)
+    t = nx.from_numpy_matrix(numpy.dot(nx.adjacency_matrix(rg),
+                                       nx.adjacency_matrix(cg)))
     print(t)
+    #g =  nx.from_pandas_adjacency(nx.to_pandas_adjacency(rg).dot(nx.to_pandas_adjacency(cg)))
+    # print(nx.is_isomorphic(t,g))
     pass

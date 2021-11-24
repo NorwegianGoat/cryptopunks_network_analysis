@@ -1,3 +1,4 @@
+from networkx.classes.digraph import DiGraph
 from networkx.classes.graph import Graph
 from networkx.classes.multidigraph import MultiDiGraph
 import requests
@@ -6,8 +7,7 @@ import time
 import os
 import pandas as pd
 import networkx as nx
-import numpy
-import sqlite3
+import matplotlib.pyplot as plt
 
 
 def get_last_block() -> int:
@@ -160,10 +160,11 @@ def data_split():
 
 def matrices_creation():
     # Full matrix
+    data = pd.read_csv("./out/all_exchanges.csv")
     fg: MultiDiGraph = nx.from_pandas_edgelist(
-        pd.read_csv("./out/all_exchanges.csv"), edge_attr=True, create_using=nx.MultiDiGraph)
+        data, edge_attr=True, create_using=nx.MultiDiGraph)
     print("[FULL MATTRIX]", fg)
-    # Removal of human exchanges from ""
+    # Rare and common exchanges list
     common_exchanges = []
     rare_exchanges = []
     for edge in fg.edges(data=True, keys=True):
@@ -179,50 +180,46 @@ def matrices_creation():
     rg: MultiDiGraph = fg.copy()
     rg.remove_edges_from(common_exchanges)
     print("[RARE MATRIX]", rg)
-    return fg, cg, rg
+    # Bipartite graph source = Addresses, target = NFT
+    data.drop(columns='source', inplace=True)
+    data.rename(columns={"target": "source",
+                "punk_id": "target"}, inplace=True)
+    bg = nx.from_pandas_edgelist(
+        data, edge_attr=True, create_using=nx.DiGraph)
+    return fg, cg, rg, bg
 
 
-def graph_analysis(matrix: Graph):
+def graph_analysis(matrix: DiGraph):
     matrix.remove_node(__NULL_ADDRESS)
-    pass
+    degrees = [degree for node, degree in matrix.degree()]
+    plt.hist(degrees, log=True, bins=50)
+    plt.xlabel('Degree')
+    plt.ylabel('Frequency')
+    plt.show()
 
 
 def debug():
-    test_r = nx.from_pandas_adjacency(pd.DataFrame(
-        [[0, 1, 0], [0, 0, 1], [0, 0, 0]]), create_using=nx.DiGraph)
-    test_c = nx.from_pandas_adjacency(pd.DataFrame(
-        [[0, 0, 1], [0, 0, 0], [1, 0, 0]]), create_using=nx.DiGraph)
-    test_rc = nx.from_numpy_matrix(numpy.dot(nx.adjacency_matrix(test_r),
-                                             nx.adjacency_matrix(test_c)), create_using=nx.DiGraph)
-    print(test_rc)
-    nx.to_pandas_adjacency(test_r).to_csv(
-        "./tmp/testr.csv", index=False, mode="w")
-    nx.to_pandas_adjacency(test_c).to_csv(
-        "./tmp/testc.csv", index=False, mode="w")
-    nx.to_pandas_adjacency(test_rc).to_csv(
-        "./tmp/testrc.csv", index=False, mode="w")
-        
+    pass
+
+
 if __name__ == "__main__":
     # get_data()
     # parse_and_filter_data()
     # rm_duplicates()
     # data_enrichment()
     # data_split()
-    fg, cg, rg = matrices_creation()
+    fg, cg, rg, bg = matrices_creation()
     '''edgelists of common exchanges and rare exchanges. Saved for further
     visual inspection with gephi. Conceptually rare_exchanges is the sum of
-    ape_exchanges, alien_exchanges and zombie_echanges. 
+    ape_exchanges, alien_exchanges and zombie_echanges.
     common_exchanges is all_exchanges - rare_exchanges'''
     # nx.to_pandas_edgelist(cg).to_csv(
-    #   "./out/common_exchanges.csv", index=False, mode="w")
+    #    "./out/common_exchanges.csv", index=False, mode="w")
     # nx.to_pandas_edgelist(rg).to_csv(
-    #   "./out/rare_exchanges.csv", index=False, mode="w")
-    fg.remove_node(__NULL_ADDRESS)
-    rg.remove_node(__NULL_ADDRESS)
-    cg.remove_node(__NULL_ADDRESS)
-    # Creates a matrix of common exchanges made by rare nft owners
-    rcg = nx.from_numpy_matrix(numpy.dot(nx.adjacency_matrix(rg),
-                                         nx.adjacency_matrix(cg)), create_using=nx.DiGraph)
-    print(rcg)
+    #    "./out/rare_exchanges.csv", index=False, mode="w")
+    '''Edgelist of the bipartite graph Nft - owner'''
+    # nx.to_pandas_edgelist(bg).to_csv(
+    #    ./out/bipartite.csv", index=False, mode="w")
+    graph_analysis(bg)
     debug()
     pass

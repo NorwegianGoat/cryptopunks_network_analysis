@@ -1,6 +1,8 @@
 from networkx.classes.digraph import DiGraph
+from networkx.classes.function import degree
 from networkx.classes.graph import Graph
 from networkx.classes.multidigraph import MultiDiGraph
+from networkx.readwrite import text
 import requests
 import json
 import time
@@ -158,12 +160,12 @@ def data_split():
     alien_data.to_csv("./out/alien_exchanges.csv", index=False)
 
 
-def matrices_creation():
+def graphs_creation():
     # Full matrix
     data = pd.read_csv("./out/all_exchanges.csv")
     fg: MultiDiGraph = nx.from_pandas_edgelist(
         data, edge_attr=True, create_using=nx.MultiDiGraph)
-    print("[FULL MATTRIX]", fg)
+    print("[FULL GRAPH]", fg)
     # Rare and common exchanges list
     common_exchanges = []
     rare_exchanges = []
@@ -175,27 +177,38 @@ def matrices_creation():
     # Remove rare exchanges from common exchanges matrix
     cg: MultiDiGraph = fg.copy()
     cg.remove_edges_from(rare_exchanges)
-    print("[COMMON MATRIX]", cg)
+    print("[COMMON GRAPH]", cg)
     # Remove common exchange from rare matrix
     rg: MultiDiGraph = fg.copy()
     rg.remove_edges_from(common_exchanges)
-    print("[RARE MATRIX]", rg)
+    print("[RARE GRAPH]", rg)
     # Bipartite graph source = Addresses, target = NFT
     data.drop(columns='source', inplace=True)
     data.rename(columns={"target": "source",
                 "punk_id": "target"}, inplace=True)
     bg = nx.from_pandas_edgelist(
         data, edge_attr=True, create_using=nx.DiGraph)
+    print("[BIPARTITE GRAPH]", bg)
     return fg, cg, rg, bg
 
 
-def graph_analysis(matrix: DiGraph):
+def graph_analysis(matrix: DiGraph, graph_name: str):
+    # graph name is used while saving images, etc
     matrix.remove_node(__NULL_ADDRESS)
-    degrees = [degree for node, degree in matrix.degree()]
-    plt.hist(degrees, log=True, bins=50)
-    plt.xlabel('Degree')
-    plt.ylabel('Frequency')
-    plt.show()
+    if graph_name == "bg":
+        degrees = [degree for node, degree in matrix.degree(
+            nbunch=range(0, 10000))]
+        centralities = nx.algorithms.centrality.degree_centrality(matrix)
+        centralities = [centralities[i] for i in range(0, 10000)]
+    else:
+        degrees = [degree for node, degree in matrix.degree()]
+        centralities = nx.algorithms.centrality.degree_centrality(matrix)
+    fig, (ax1, ax2) = plt.subplots(1, 2)
+    ax1.hist(degrees, log=False, bins=50)
+    ax2.hist(degrees, log=True, bins=50)
+    fig.supxlabel('Degree')
+    fig.supylabel('Frequency')
+    fig.savefig('./out/'+graph_name+"_deg_dist")
 
 
 def debug():
@@ -208,7 +221,10 @@ if __name__ == "__main__":
     # rm_duplicates()
     # data_enrichment()
     # data_split()
-    fg, cg, rg, bg = matrices_creation()
+    fg, cg, rg, bg = graphs_creation()
+    # for node in bg.nodes(data=True):
+    #   print(node)
+    # print(nx.attribute_assortativity_coefficient(fg, attribute='punk_type'))
     '''edgelists of common exchanges and rare exchanges. Saved for further
     visual inspection with gephi. Conceptually rare_exchanges is the sum of
     ape_exchanges, alien_exchanges and zombie_echanges.
@@ -220,6 +236,14 @@ if __name__ == "__main__":
     '''Edgelist of the bipartite graph Nft - owner'''
     # nx.to_pandas_edgelist(bg).to_csv(
     #    ./out/bipartite.csv", index=False, mode="w")
-    graph_analysis(bg)
+    # graph_analysis(bg, "bg")
+    # graph_analysis(fg, "fg")
+    print(nx.algorithms.sigma(nx.Graph(fg)))
+    test = nx.Graph(fg).to_undirected()
+    print(nx.algorithms.approximation.average_clustering(test))
+    print(nx.algorithms.approximation.ret)
+    test.remove_edges_from(nx.selfloop_edges(test))
+    for k in range(1, 20):
+        print(nx.algorithms.k_core(test, k=k))
     debug()
     pass

@@ -1,3 +1,4 @@
+from networkx.algorithms.distance_measures import diameter
 from networkx.classes.digraph import DiGraph
 from networkx.classes.function import degree
 from networkx.classes.graph import Graph
@@ -207,17 +208,37 @@ def graphs_creation():
     return fg, cg, rg, bg
 
 
-def graph_analysis(matrix: DiGraph, graph_name: str):
+def graph_analysis(matrix: MultiDiGraph, graph_name: str):
     # graph name is used while saving images, etc
-    matrix.remove_node(__NULL_ADDRESS)
+    # TODO: rimuovere nodi con degree < 1? Significa che hanno riscattato il token e non lo hanno mai usato
+    # matrix.remove_node(__NULL_ADDRESS)
+    # Degree analysis
+    matrix = matrix.to_undirected()
+    flat_matrix = nx.Graph(matrix)
+    flat_matrix.remove_edges_from(nx.selfloop_edges(flat_matrix)) #TODO: Provare come cambia con e senza
     degrees = [degree for node, degree in matrix.degree()]
-    centralities = nx.algorithms.centrality.degree_centrality(matrix)
-    fig, (ax1, ax2) = plt.subplots(1, 2)
-    ax1.hist(degrees, log=False, bins=50)
-    ax2.hist(degrees, log=True, bins=50)
+    fig, (ax1, ax2) = plt.subplots(1, 2, sharex = False, sharey=False)
+    ax1.hist(degrees, bins=50)
+    ax2.hist(degrees, bins=50)
+    ax2.set_yscale("log")
+    ax2.set_xscale("log")
     fig.supxlabel('Degree')
     fig.supylabel('Frequency')
     fig.savefig('./out/'+graph_name+"_deg_dist")
+    '''# Average path lenght
+    avg_path = nx.algorithms.average_shortest_path_length(matrix)
+    print("Average path length: ", avg_path)
+    # Diameter
+    diameter = nx.algorithms.diameter(matrix)
+    print("Diameter: ", diameter)
+    # Clustering coefficent
+    c_coefficent = nx.algorithms.average_clustering(flat_matrix)
+    print("Clustering coefficent: ", c_coefficent)'''
+    # k-cores analysis
+    k_cores = [nx.algorithms.k_core(flat_matrix,k) for k in range(1,15)]
+    for k_core in k_cores:
+        print("Core values: ", k_core) #TODO: usare shape del grafo
+        
 
 
 def debug():
@@ -242,7 +263,6 @@ if __name__ == "__main__":
     '''Edgelist of the bipartite graph Nft - owner'''
     # nx.to_pandas_edgelist(bg).to_csv(
     #    ./out/bipartite.csv", index=False, mode="w")
-    # --------------------------------------------------------------------------------------
     #debug()
     graph_analysis(fg,"fg")
     pass

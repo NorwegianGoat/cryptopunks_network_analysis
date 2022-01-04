@@ -3,6 +3,7 @@ from networkx.classes.function import degree
 from networkx.classes.graph import Graph
 from networkx.classes.multidigraph import MultiDiGraph
 from networkx.readwrite import text
+from numpy import log
 import requests
 import json
 import time
@@ -140,15 +141,14 @@ def data_enrichment():
                  for file in punk_data_files]
     punk_data = pd.concat(punk_data)
     punk_data.sort_values(by=["id"], inplace=True)
-    logs_data = logs_data.merge(punk_data.iloc[:, 0: 2].rename(
-        columns={"id": "punk_id", "type": "punk_type"}), on="punk_id")
-    punk_data.rename(columns={"type": "punk_type"}, inplace=True)
+    punk_data.rename(columns={"type": "punk_type", "id":"punk_id"}, inplace=True)
+    logs_data = logs_data.merge(punk_data.iloc[:, 0: 2], on="punk_id")
     logs_data.sort_values(by=['timestamp'], inplace=True)
     logs_data.to_csv("./out/all_exchanges.csv", index=False, mode='w')
 
 
 def data_split():
-    # Exchanges split by type
+    # Exchanges splitted by type
     logs_data = pd.read_csv("./out/all_exchanges.csv")
     human_data = logs_data.loc[logs_data["punk_type"] == "Human"]
     human_data.to_csv("./out/human_exchanges.csv", index=False)
@@ -158,6 +158,19 @@ def data_split():
     zombie_data.to_csv("./out/zombie_exchanges.csv", index=False)
     alien_data = logs_data.loc[logs_data["punk_type"] == "Alien"]
     alien_data.to_csv("./out/alien_exchanges.csv", index=False)
+    
+
+def add_attributes(fg:MultiDiGraph):
+    logs_data = pd.read_csv("./out/all_exchanges.csv")
+    logs_data = logs_data.loc[logs_data["punk_type"]!="Human"].value_counts(subset="target")
+    #logs_data.to_csv("./out/account_info.csv")
+    logs_data = logs_data.to_dict()
+    for node in fg.nodes():
+        if node in logs_data:
+            fg.nodes[node]["rare_freq"] = logs_data[node]
+        else:
+            fg.nodes[node]["rare_freq"] = 0
+    
 
 
 def graphs_creation():
@@ -165,6 +178,8 @@ def graphs_creation():
     data = pd.read_csv("./out/all_exchanges.csv")
     fg: MultiDiGraph = nx.from_pandas_edgelist(
         data, edge_attr=True, create_using=nx.MultiDiGraph)
+    # Add attributes to data
+    add_attributes(fg)
     print("[FULL GRAPH]", fg)
     # Rare and common exchanges list
     common_exchanges = []
@@ -195,14 +210,8 @@ def graphs_creation():
 def graph_analysis(matrix: DiGraph, graph_name: str):
     # graph name is used while saving images, etc
     matrix.remove_node(__NULL_ADDRESS)
-    if graph_name == "bg":
-        degrees = [degree for node, degree in matrix.degree(
-            nbunch=range(0, 10000))]
-        centralities = nx.algorithms.centrality.degree_centrality(matrix)
-        centralities = [centralities[i] for i in range(0, 10000)]
-    else:
-        degrees = [degree for node, degree in matrix.degree()]
-        centralities = nx.algorithms.centrality.degree_centrality(matrix)
+    degrees = [degree for node, degree in matrix.degree()]
+    centralities = nx.algorithms.centrality.degree_centrality(matrix)
     fig, (ax1, ax2) = plt.subplots(1, 2)
     ax1.hist(degrees, log=False, bins=50)
     ax2.hist(degrees, log=True, bins=50)
@@ -222,9 +231,6 @@ if __name__ == "__main__":
     # data_enrichment()
     # data_split()
     fg, cg, rg, bg = graphs_creation()
-    # for node in bg.nodes(data=True):
-    #   print(node)
-    # print(nx.attribute_assortativity_coefficient(fg, attribute='punk_type'))
     '''edgelists of common exchanges and rare exchanges. Saved for further
     visual inspection with gephi. Conceptually rare_exchanges is the sum of
     ape_exchanges, alien_exchanges and zombie_echanges.
@@ -236,14 +242,7 @@ if __name__ == "__main__":
     '''Edgelist of the bipartite graph Nft - owner'''
     # nx.to_pandas_edgelist(bg).to_csv(
     #    ./out/bipartite.csv", index=False, mode="w")
-    # graph_analysis(bg, "bg")
-    # graph_analysis(fg, "fg")
-    print(nx.algorithms.sigma(nx.Graph(fg)))
-    test = nx.Graph(fg).to_undirected()
-    print(nx.algorithms.approximation.average_clustering(test))
-    print(nx.algorithms.approximation.ret)
-    test.remove_edges_from(nx.selfloop_edges(test))
-    for k in range(1, 20):
-        print(nx.algorithms.k_core(test, k=k))
-    debug()
+    # --------------------------------------------------------------------------------------
+    #debug()
+    graph_analysis(fg,"fg")
     pass

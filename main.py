@@ -1,3 +1,4 @@
+from networkx.algorithms.core import k_core
 from networkx.algorithms.distance_measures import diameter
 from networkx.classes.digraph import DiGraph
 from networkx.classes.function import degree
@@ -142,6 +143,7 @@ def data_enrichment():
                  for file in punk_data_files]
     punk_data = pd.concat(punk_data)
     punk_data.sort_values(by=["id"], inplace=True)
+    punk_data.to_csv("./punks_data/0-9999.csv",index=False)
     punk_data.rename(columns={"type": "punk_type", "id":"punk_id"}, inplace=True)
     logs_data = logs_data.merge(punk_data.iloc[:, 0: 2], on="punk_id")
     logs_data.sort_values(by=['timestamp'], inplace=True)
@@ -161,7 +163,7 @@ def data_split():
     alien_data.to_csv("./out/alien_exchanges.csv", index=False)
     
 
-def add_attributes(fg:MultiDiGraph):
+def add_rare_freq(fg:MultiDiGraph):
     logs_data = pd.read_csv("./out/all_exchanges.csv")
     logs_data = logs_data.loc[logs_data["punk_type"]!="Human"].value_counts(subset="target")
     #logs_data.to_csv("./out/account_info.csv")
@@ -173,6 +175,22 @@ def add_attributes(fg:MultiDiGraph):
             fg.nodes[node]["rare_freq"] = 0
     
 
+def add_node_type(bg:MultiDiGraph):
+    punk_data = pd.read_csv('./punks_data/0-9999.csv')
+    for node in bg.nodes():
+        if node in punk_data["id"]:
+            punk_type = punk_data.iloc[node]["type"]
+            if punk_type == "Human":
+                bg.nodes[node]["node_type"] = 0
+            elif punk_type == "Zombie":
+                bg.nodes[node]["node_type"] = 1
+            elif punk_type == "Ape":
+                bg.nodes[node]["node_type"] = 2
+            elif punk_type == "Alien":
+                bg.nodes[node]["node_type"] = 3
+        else:
+            bg.nodes[node]["node_type"] = -1
+
 
 def graphs_creation():
     # Full matrix
@@ -180,7 +198,7 @@ def graphs_creation():
     fg: MultiDiGraph = nx.from_pandas_edgelist(
         data, edge_attr=True, create_using=nx.MultiDiGraph)
     # Add attributes to data
-    add_attributes(fg)
+    add_rare_freq(fg)
     print("[FULL GRAPH]", fg)
     # Rare and common exchanges list
     common_exchanges = []
@@ -203,13 +221,14 @@ def graphs_creation():
     data.rename(columns={"target": "source",
                 "punk_id": "target"}, inplace=True)
     bg = nx.from_pandas_edgelist(
-        data, edge_attr=True, create_using=nx.DiGraph)
+        data, edge_attr=True, create_using=nx.MultiDiGraph)
+    add_node_type(bg)
     print("[BIPARTITE GRAPH]", bg)
     return fg, cg, rg, bg
 
 
 def graph_analysis(matrix: MultiDiGraph, graph_name: str):
-    # graph name is used while saving images, etc
+    # graph name is used while saving images and for analysis
     # TODO: rimuovere nodi con degree < 1? Significa che hanno riscattato il token e non lo hanno mai usato
     # matrix.remove_node(__NULL_ADDRESS)
     # Degree analysis
@@ -218,31 +237,42 @@ def graph_analysis(matrix: MultiDiGraph, graph_name: str):
     flat_matrix.remove_edges_from(nx.selfloop_edges(flat_matrix)) #TODO: Provare come cambia con e senza
     degrees = [degree for node, degree in matrix.degree()]
     fig, (ax1, ax2) = plt.subplots(1, 2, sharex = False, sharey=False)
-    ax1.hist(degrees, bins=50)
-    ax2.hist(degrees, bins=50)
+    ax1.hist(degrees, bins=30)
+    ax2.hist(degrees, bins=30)
     ax2.set_yscale("log")
     ax2.set_xscale("log")
     fig.supxlabel('Degree')
     fig.supylabel('Frequency')
     fig.savefig('./out/'+graph_name+"_deg_dist")
-    '''# Average path lenght
-    avg_path = nx.algorithms.average_shortest_path_length(matrix)
-    print("Average path length: ", avg_path)
-    # Diameter
-    diameter = nx.algorithms.diameter(matrix)
-    print("Diameter: ", diameter)
-    # Clustering coefficent
-    c_coefficent = nx.algorithms.average_clustering(flat_matrix)
-    print("Clustering coefficent: ", c_coefficent)'''
-    # k-cores analysis
-    k_cores = [nx.algorithms.k_core(flat_matrix,k) for k in range(1,15)]
-    for k_core in k_cores:
-        print("Core values: ", k_core) #TODO: usare shape del grafo
-        
+    if graph_name != "bg":
+        # Average path lenght
+        avg_path = nx.algorithms.average_shortest_path_length(matrix)
+        print("Average path length: ", avg_path)
+        # Diameter
+        diameter = nx.algorithms.diameter(matrix)
+        print("Diameter: ", diameter)
+        # Clustering coefficent
+        c_coefficent = nx.algorithms.average_clustering(flat_matrix)
+        print("Clustering coefficent: ", c_coefficent)
+        # k-cores analysis
+        n_nodes = range(1,15)
+        k_cores = [nx.algorithms.k_core(flat_matrix,k).order() for k in n_nodes]
+        print("K-cores analysis: ", k_cores)
+        plt.clf()
+        plt.plot(n_nodes, k_cores)
+        plt.xlabel("K")
+        plt.ylabel("Nodes")
+        plt.savefig('./out/'+graph_name+"_k_cores")
+        #Homophily
+        degree_assort = nx.algorithms.degree_assortativity_coefficient(matrix)
+        rarity_assort = nx.algorithms.numeric_assortativity_coefficient(flat_matrix, attribute="rare_freq")
+        print("Homophily degree: ", degree_assort, " Homophily rarity: ", rarity_assort)
+    else:
+        pass
 
 
-def debug():
-    pass
+def debug(data):
+    print(data.nodes(data=True))
 
 
 if __name__ == "__main__":
@@ -263,6 +293,7 @@ if __name__ == "__main__":
     '''Edgelist of the bipartite graph Nft - owner'''
     # nx.to_pandas_edgelist(bg).to_csv(
     #    ./out/bipartite.csv", index=False, mode="w")
-    #debug()
-    graph_analysis(fg,"fg")
+    #debug(bg)
+    #graph_analysis(fg,"fg")
+    #graph_analysis(bg,"bg")
     pass

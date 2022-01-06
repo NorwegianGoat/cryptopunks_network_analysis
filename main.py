@@ -2,6 +2,7 @@ from re import sub
 from typing import List
 from networkx.algorithms.core import k_core
 from networkx.algorithms.distance_measures import diameter
+from networkx.algorithms.smallworld import sigma
 from networkx.classes.digraph import DiGraph
 from networkx.classes.function import degree
 from networkx.classes.graph import Graph
@@ -235,8 +236,9 @@ def graphs_creation():
 
 def deg_distr_analysis(degrees: List, graph_name: str):
     # Pareto analysis
-    # Copy values, needed because for pareto analysis we need to order the list,
+    # Copy values is needed because for pareto analysis we need to order the list,
     # but for correlation analysis we need the original order of the elements
+    # for the graph node_type - degree in order to have data matching
     degrees = degrees[:]
     degrees.sort()
     degrees.reverse()
@@ -253,9 +255,9 @@ def deg_distr_analysis(degrees: List, graph_name: str):
     # Plot degree distr
     fig, (ax1, ax2) = plt.subplots(1, 2, sharex=False, sharey=False)
     ax1.hist(degrees, bins=30)
-    ax2.hist(degrees, bins=30)
     ax2.set_yscale("log")
     ax2.set_xscale("log")
+    ax2.hist(degrees, bins="auto")
     fig.supxlabel('Degree')
     fig.supylabel('Frequency')
     fig.savefig('./out/'+graph_name+"_deg_dist")
@@ -264,9 +266,10 @@ def deg_distr_analysis(degrees: List, graph_name: str):
 
 def graph_analysis(mdg: MultiDiGraph, graph_name: str):
     # graph name is used while saving images and for analysis
-    # TODO: rimuovere nodi con degree < 1? Significa che hanno riscattato il token e non lo hanno mai usato
-    # matrix.remove_node(__NULL_ADDRESS)
     mg: MultiGraph = mdg.to_undirected()
+    # Null address removal. We will study the network using also non human addresses
+    # mg.remove_node(__NULL_ADDRESS)
+    # mg.remove_nodes_from(list(nx.isolates(mg)))
     g = nx.Graph(mdg)
     g.remove_edges_from(nx.selfloop_edges(g))
     if graph_name != "bg":
@@ -306,7 +309,6 @@ def graph_analysis(mdg: MultiDiGraph, graph_name: str):
         plt.scatter(node_type, degrees)
         plt.xlabel("node_type")
         plt.ylabel("degree")
-        plt.legend(["0: Humans\n1: Apes\n2: Aliens\n3: Zombies"])
         plt.savefig('./out/'+graph_name+"_type_deg")
         r_coefficent = stats.pearsonr(node_type, degrees)
         print("Pearson coefficent. r: ",
@@ -315,10 +317,10 @@ def graph_analysis(mdg: MultiDiGraph, graph_name: str):
 
 def debug(data: MultiDiGraph):
     data = data.to_undirected()
-    degrees = [node for node, degree in data.degree()
-               if node in range(0, 10001)]
-    node_type = [id for id, values in data.nodes(
-        data=True) if id in range(0, 10001)]
+    sigma = nx.algorithms.sigma(data)
+    print("Sigma: ", sigma)
+    omega = nx.algorithms.omega(data)
+    print("Omega: ", omega)
 
 
 if __name__ == "__main__":
@@ -339,7 +341,7 @@ if __name__ == "__main__":
     '''Edgelist of the bipartite graph Nft - owner'''
     # nx.to_pandas_edgelist(bg).to_csv(
     #    ./out/bipartite.csv", index=False, mode="w")
-    # debug(bg)
     graph_analysis(fg, "fg")
     graph_analysis(bg, "bg")
+    # debug(fg)
     pass

@@ -268,7 +268,6 @@ def graph_analysis(mdg: MultiDiGraph, graph_name: str):
     # matrix.remove_node(__NULL_ADDRESS)
     mg: MultiGraph = mdg.to_undirected()
     g = nx.Graph(mdg)
-    # TODO: Provare come cambia con e senza
     g.remove_edges_from(nx.selfloop_edges(g))
     if graph_name != "bg":
         # Degree analysis
@@ -295,7 +294,7 @@ def graph_analysis(mdg: MultiDiGraph, graph_name: str):
         # Homophily
         degree_assort = nx.algorithms.degree_assortativity_coefficient(mg)
         rarity_assort = nx.algorithms.numeric_assortativity_coefficient(
-            g, attribute="rare_freq")
+            mg, attribute="rare_freq")
         print("Homophily degree: ", degree_assort,
               " Homophily rarity: ", rarity_assort)
     else:

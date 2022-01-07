@@ -17,6 +17,7 @@ import os
 import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
+import powerlaw
 from scipy import stats
 
 
@@ -254,6 +255,7 @@ def deg_distr_analysis(degrees: List, graph_name: str):
             break
     # Plot degree distr
     fig, (ax1, ax2) = plt.subplots(1, 2, sharex=False, sharey=False)
+    ax1.set_yscale("log")
     ax1.hist(degrees, bins=30)
     ax2.set_yscale("log")
     ax2.set_xscale("log")
@@ -262,6 +264,28 @@ def deg_distr_analysis(degrees: List, graph_name: str):
     fig.supylabel('Frequency')
     fig.savefig('./out/'+graph_name+"_deg_dist")
     plt.clf()
+    # Scale free analysis
+    fit = powerlaw.Fit(degrees, discrete=True, xmin=1)
+    print("Power law alpha: ", fit.alpha,
+          " Power law xmin: ", fit.xmin)
+    axis = fit.plot_ccdf()
+    fit.power_law.plot_ccdf(ax=axis, color='r', linestyle='--')
+    fit.lognormal.plot_ccdf(ax=axis, color='g', linestyle='--')
+    fit.stretched_exponential.plot_ccdf(ax=axis, color='b', linestyle='--')
+    plt.legend(['Observed network', 'Power law',
+               'Lognormal', 'Stretched exp.'])
+    plt.xlabel("Degree")
+    plt.ylabel("CDF")
+    plt.savefig('./out/'+graph_name+'_ccdf')
+    plt.clf()
+    power_law_lognormal = fit.distribution_compare(
+        "power_law", "lognormal", normalized_ratio=True)
+    power_law_stretched = fit.distribution_compare(
+        "power_law", "stretched_exponential", normalized_ratio=True)
+    log_normal_stretched = fit.distribution_compare(
+        "lognormal", "stretched_exponential", normalized_ratio=True)
+    print("Power law vs lognormal: ", power_law_lognormal,
+          " Power law vs stretched exponential", power_law_stretched, " Lognormal vs stretched exponential ", log_normal_stretched)
 
 
 def graph_analysis(mdg: MultiDiGraph, graph_name: str):
@@ -316,7 +340,7 @@ def graph_analysis(mdg: MultiDiGraph, graph_name: str):
 
 
 def debug(data: MultiDiGraph):
-    data = data.to_undirected()
+    data = nx.Graph(data)
     sigma = nx.algorithms.sigma(data)
     print("Sigma: ", sigma)
     omega = nx.algorithms.omega(data)

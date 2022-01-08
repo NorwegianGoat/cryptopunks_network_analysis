@@ -183,21 +183,21 @@ def add_rare_freq(fg: MultiDiGraph):
             fg.nodes[node]["rare_freq"] = 0
 
 
-def add_node_type(bg: MultiDiGraph):
+def add_node_rarity(bg: MultiDiGraph):
     punk_data = pd.read_csv('./punks_data/0-9999.csv')
     for node in bg.nodes():
         if node in punk_data["id"]:
             punk_type = punk_data.iloc[node]["type"]
             if punk_type == "Human":
-                bg.nodes[node]["node_type"] = 0
+                bg.nodes[node]["node_rarity"] = 0
             elif punk_type == "Zombie":
-                bg.nodes[node]["node_type"] = 1
+                bg.nodes[node]["node_rarity"] = 1
             elif punk_type == "Ape":
-                bg.nodes[node]["node_type"] = 2
+                bg.nodes[node]["node_rarity"] = 2
             elif punk_type == "Alien":
-                bg.nodes[node]["node_type"] = 3
+                bg.nodes[node]["node_rarity"] = 3
         else:
-            bg.nodes[node]["node_type"] = -1
+            bg.nodes[node]["node_rarity"] = -1
 
 
 def graphs_creation():
@@ -230,7 +230,7 @@ def graphs_creation():
                 "punk_id": "target"}, inplace=True)
     bg = nx.from_pandas_edgelist(
         data, edge_attr=True, create_using=nx.MultiDiGraph)
-    add_node_type(bg)
+    add_node_rarity(bg)
     print("[BIPARTITE GRAPH]", bg)
     return fg, cg, rg, bg
 
@@ -239,7 +239,7 @@ def deg_distr_analysis(degrees: List, graph_name: str):
     # Pareto analysis
     # Copy values is needed because for pareto analysis we need to order the list,
     # but for correlation analysis we need the original order of the elements
-    # for the graph node_type - degree in order to have data matching
+    # for the plot node_rarity - degree in order to have data matching
     degrees = degrees[:]
     degrees.sort()
     degrees.reverse()
@@ -328,13 +328,13 @@ def graph_analysis(mdg: MultiDiGraph, graph_name: str):
         degrees = [degree for node, degree in mg.degree()
                    if node in range(0, 10001)]
         deg_distr_analysis(degrees, graph_name)
-        node_type = [values["node_type"] for id, values in mg.nodes(
+        node_rarity = [values["node_rarity"] for id, values in mg.nodes(
             data=True) if id in range(0, 10001)]
-        plt.scatter(node_type, degrees)
-        plt.xlabel("node_type")
+        plt.scatter(node_rarity, degrees)
+        plt.xlabel("node_rarity")
         plt.ylabel("degree")
-        plt.savefig('./out/'+graph_name+"_type_deg")
-        r_coefficent = stats.pearsonr(node_type, degrees)
+        plt.savefig('./out/'+graph_name+"_rarity_deg")
+        r_coefficent = stats.pearsonr(node_rarity, degrees)
         print("Pearson coefficent. r: ",
               r_coefficent[0], " p: ", r_coefficent[1])
 

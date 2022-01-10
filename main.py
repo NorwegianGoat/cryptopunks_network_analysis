@@ -275,7 +275,7 @@ def deg_distr_analysis(degrees: List, graph_name: str):
     plt.legend(['Observed network', 'Power law',
                'Lognormal', 'Stretched exp.'])
     plt.xlabel("Degree")
-    plt.ylabel("CDF")
+    plt.ylabel("CCDF")
     plt.savefig('./out/'+graph_name+'_ccdf')
     plt.clf()
     power_law_lognormal = fit.distribution_compare(

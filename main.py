@@ -314,7 +314,7 @@ def graph_analysis(mdg: MultiDiGraph, graph_name: str):
         k_cores = [nx.algorithms.k_core(
             g, k).order() for k in n_nodes]
         print("K-cores analysis: ", k_cores)
-        plt.plot(n_nodes, k_cores)
+        plt.plot(n_nodes, k_cores, marker="s")
         plt.xlabel("K")
         plt.ylabel("Nodes")
         plt.savefig('./out/'+graph_name+"_k_cores")

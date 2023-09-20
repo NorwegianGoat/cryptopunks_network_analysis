@@ -1,6 +1,6 @@
-# sna_exam
+# cryptopunks_network_analysis
 
-Repo for the Social Network Analysis Exam. The work consists in an analysis of the CryptoPunks' network.
+Repo for the Social Network Analysis Exam. The work consists in an analysis of the CryptoPunks' network, you can read the results in the file named `report.pdf`.
 
 ## Data:
 
